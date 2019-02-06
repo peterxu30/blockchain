@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -8,16 +9,20 @@ import (
 )
 
 const (
-	dbDir        = ".db"
 	dbFile       = "main.db"
 	blocksBucket = "blocksBucket"
 	headBlock    = "head"
 )
 
 type Blockchain struct {
+	metadata   *BlockchainMetadata
 	head       []byte
 	difficulty int
 	db         *bolt.DB
+}
+
+type BlockchainMetadata struct {
+	DbPath string
 }
 
 type BlockchainIterator struct {
@@ -26,7 +31,7 @@ type BlockchainIterator struct {
 }
 
 func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockchain, error) {
-	fullDbPath := dbPath + "/" + dbFile
+	fullDbPath := fmt.Sprintf("%s/%s", dbPath, dbFile)
 	if _, err := os.Stat(fullDbPath); os.IsNotExist(err) {
 		err = os.MkdirAll(dbPath, 0700)
 		if err != nil {
@@ -77,7 +82,12 @@ func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockcha
 		return nil
 	})
 
+	metadata := &BlockchainMetadata{
+		DbPath: dbPath,
+	}
+
 	blockchain := &Blockchain{
+		metadata:   metadata,
 		head:       encodedHead,
 		difficulty: difficulty,
 		db:         db,
@@ -135,11 +145,11 @@ func (bc *Blockchain) Iterator() *BlockchainIterator {
 	return bci
 }
 
-func (bc *Blockchain) Delete() {
+func DeleteBlockchain(bc *Blockchain) {
 	bc.Close()
 
-	if _, err := os.Stat(dbDir); !os.IsNotExist(err) {
-		err = os.RemoveAll(dbDir)
+	if _, err := os.Stat(bc.metadata.DbPath); !os.IsNotExist(err) {
+		err = os.RemoveAll(bc.metadata.DbPath)
 		if err != nil {
 			log.Panic(err)
 		}

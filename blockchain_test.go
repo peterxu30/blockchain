@@ -2,7 +2,6 @@ package blockchain
 
 import (
 	"log"
-	"os"
 	"testing"
 )
 
@@ -11,35 +10,16 @@ const (
 	difficulty = 10 // Easy difficulty for testing purposes.
 )
 
-// MUST defer bc.Close() during the test or test teardown will panic.
-func testSetup(t *testing.T) func(t *testing.T) {
-	removeTestDB()
-
-	return func(t *testing.T) {
-		removeTestDB()
-	}
-}
-
-func removeTestDB() {
-	if _, err := os.Stat(testDbDir); !os.IsNotExist(err) {
-		err = os.RemoveAll(testDbDir)
-		if err != nil {
-			log.Panic(err)
-		}
-	}
-}
-
 func TestBlockchainHappyPath(t *testing.T) {
-	testTearDown := testSetup(t)
-	defer testTearDown(t)
-
 	log.Println("Test start.")
 
 	bc, err := NewBlockChain(testDbDir, difficulty, nil)
 	if err != nil {
 		log.Println(err)
 	}
-	defer bc.Close()
+
+	// Normally call bc.Close() instead of DeleteBlockchain in order to persist the backing boltDb store. We delete the store here for testing.
+	defer DeleteBlockchain(bc)
 
 	log.Println("Blockchain created.")
 
