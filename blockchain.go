@@ -25,7 +25,7 @@ type BlockchainIterator struct {
 	db          *bolt.DB
 }
 
-func NewBlockChain(dbPath string, difficulty int, dbPath string, genesisData []byte) (*Blockchain, error) {
+func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockchain, error) {
 	fullDbPath := dbPath + "/" + dbFile
 	if _, err := os.Stat(fullDbPath); os.IsNotExist(err) {
 		err = os.MkdirAll(dbPath, 0700)
