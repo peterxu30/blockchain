@@ -2,6 +2,8 @@ package blockchain
 
 import (
 	"log"
+	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -28,12 +30,12 @@ func TestBlockchainHappyPath(t *testing.T) {
 
 	err = bc.AddBlock([]byte(msg1))
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	err = bc.AddBlock([]byte(msg2))
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	log.Println("Blocks added.")
@@ -62,4 +64,192 @@ func TestBlockchainHappyPath(t *testing.T) {
 	if currBlock != nil {
 		t.Errorf("Blockchain should be of length 3 but was not.")
 	}
+}
+
+func TestBlockchainConcurrentInsert(t *testing.T) {
+	log.Println("Test start.")
+
+	genesisMessage := "Genesis Block"
+	bc, err := NewBlockChain(testDbDir, difficulty, []byte(genesisMessage))
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Normally call bc.Close() instead of DeleteBlockchain in order to persist the backing boltDb store. We delete the store here for testing.
+	defer DeleteBlockchain(bc)
+
+	log.Println("Blockchain created.")
+
+	// Create 1000 go routines that each add 1 block
+	routines := 1000
+	// var wg sync.WaitGroup
+	// wg.Add(routines)
+
+	expectedMessages := map[string]int{genesisMessage: 1}
+	addNumberBlocksConccurently(t, bc, routines, expectedMessages)
+
+	// for i := 0; i < routines; i++ {
+	// 	expectedMessages[strconv.Itoa(i)] = false
+	// 	go func(msg int) {
+	// 		defer wg.Done()
+	// 		stringMsg := strconv.Itoa(msg)
+
+	// 		err := bc.AddBlock([]byte(stringMsg))
+	// 		if err != nil {
+	// 			t.Error(err)
+	// 		}
+	// 	}(i)
+	// }
+
+	// wg.Wait()
+	log.Println("Blocks added.")
+
+	// Verify 20 blocks added and messages are 0-19
+	counter := readBlockchain(t, bc, expectedMessages)
+
+	// bci := bc.Iterator()
+	// block, err := bci.Next()
+	// if err != nil {
+	// 	t.Errorf("Could not retrieve next block: %v", err)
+	// }
+
+	// counter := 0
+	// for block != nil {
+	// 	msg := string(block.GetData())
+
+	// 	if val, ok := expectedMessages[msg]; ok && val <= 0 {
+	// 		counter++
+	// 		expectedMessages[msg]++
+	// 	} else {
+	// 		t.Errorf("Unexpected val encountered: %v", msg)
+	// 	}
+
+	// 	block, err = bci.Next()
+	// 	if err != nil {
+	// 		t.Errorf("Could not retrieve next block: %v", err)
+	// 	}
+	// }
+
+	// + 1 for the Genesis Block
+	if counter != routines+1 {
+		t.Errorf("Retrieved %v blocks but expected %v blocks", counter, routines)
+	}
+}
+
+func TestBlockchainConcurrentRead(t *testing.T) {
+	log.Println("Test start.")
+
+	genesisMessage := "Genesis Block"
+	bc, err := NewBlockChain(testDbDir, difficulty, []byte(genesisMessage))
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Normally call bc.Close() instead of DeleteBlockchain in order to persist the backing boltDb store. We delete the store here for testing.
+	defer DeleteBlockchain(bc)
+
+	log.Println("Blockchain created.")
+
+	// Create 30 go routines that each read the blockchain
+	routines := 30
+	expectedValues := map[string]int{genesisMessage: 1}
+	addNumberBlocksConccurently(t, bc, routines, expectedValues)
+
+	readBlockchainConcurrently(t, bc, routines, expectedValues, routines+1)
+	// var wg sync.WaitGroup
+	// wg.Add(routines)
+
+	// expectedMessages := map[string]bool{genesisMessage: false}
+	// for i := 0; i < routines; i++ {
+	// 	expectedMessages[strconv.Itoa(i)] = false
+	// 	go func(msg int) {
+	// 		defer wg.Done()
+	// 		stringMsg := strconv.Itoa(msg)
+
+	// 		err := bc.AddBlock([]byte(stringMsg))
+	// 		if err != nil {
+	// 			t.Error(err)
+	// 		}
+	// 	}(i)
+	// }
+
+}
+
+func addNumberBlocksConccurently(t *testing.T, bc *Blockchain, routines int, expectedValues map[string]int) {
+	var wg sync.WaitGroup
+	wg.Add(routines)
+
+	for i := 0; i < routines; i++ {
+		expectedValues[strconv.Itoa(i)]++
+		go func(msg int) {
+			defer wg.Done()
+			stringMsg := strconv.Itoa(msg)
+
+			err := bc.AddBlock([]byte(stringMsg))
+			if err != nil {
+				t.Error(err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+func readBlockchainConcurrently(t *testing.T, bc *Blockchain, routines int, expectedValues map[string]int, blockchainLength int) {
+	var wg sync.WaitGroup
+	wg.Add(routines)
+
+	for i := 0; i < routines; i++ {
+		go func() {
+			defer wg.Done()
+
+			bcLength := readBlockchain(t, bc, copyMap(expectedValues))
+			if bcLength != blockchainLength {
+				t.Errorf("Expected blockchain length %v but was %v", blockchainLength, bcLength)
+			}
+		}()
+	}
+
+	wg.Wait()
+}
+
+func readBlockchain(t *testing.T, bc *Blockchain, expectedValues map[string]int) int {
+	bci := bc.Iterator()
+	block, err := bci.Next()
+	if err != nil {
+		t.Errorf("Could not retrieve next block: %v", err)
+	}
+
+	totalBlockCount := 0
+	for block != nil {
+		msg := string(block.GetData())
+
+		if val, ok := expectedValues[msg]; ok && val > 0 {
+			totalBlockCount++
+			expectedValues[msg]--
+		} else {
+			t.Errorf("Unexpected val encountered: %v", msg)
+		}
+
+		block, err = bci.Next()
+		if err != nil {
+			t.Errorf("Could not retrieve next block: %v", err)
+		}
+	}
+
+	for k, v := range expectedValues {
+		if v != 0 {
+			t.Errorf("Incorrect count for %v: %v.", k, v)
+		}
+	}
+
+	return totalBlockCount
+}
+
+func copyMap(originalMap map[string]int) map[string]int {
+	newMap := map[string]int{}
+	for k, v := range originalMap {
+		newMap[k] = v
+	}
+	return newMap
 }

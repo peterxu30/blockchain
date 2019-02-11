@@ -107,24 +107,29 @@ func NewGenesisBlock(data []byte) *Block {
 }
 
 func (bc *Blockchain) AddBlock(data []byte) error {
-	newBlock := NewBlock(bc.difficulty, bc.head, data)
-
-	err := bc.db.Update(func(tx *bolt.Tx) error {
+	err := bc.db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
-		encodedNewBlock, err := newBlock.Serialize()
 
+		newBlock := NewBlock(bc.difficulty, bc.head, data)
+
+		encodedNewBlock, err := newBlock.Serialize()
 		if err != nil {
 			return err
 		}
 
-		err = b.Put(newBlock.GetHash(), encodedNewBlock)
+		// Blocks should never be updated after initial creation.
+		if b.Get(newBlock.GetHash()) != nil {
+			return nil
+		}
 
+		err = b.Put(newBlock.GetHash(), encodedNewBlock)
 		if err != nil {
 			return err
 		}
 
 		err = b.Put([]byte(headBlock), newBlock.GetHash())
 		bc.head = newBlock.GetHash()
+
 		return nil
 	})
 
