@@ -82,53 +82,13 @@ func TestBlockchainConcurrentInsert(t *testing.T) {
 
 	// Create 1000 go routines that each add 1 block
 	routines := 1000
-	// var wg sync.WaitGroup
-	// wg.Add(routines)
-
 	expectedMessages := map[string]int{genesisMessage: 1}
 	addNumberBlocksConccurently(t, bc, routines, expectedMessages)
 
-	// for i := 0; i < routines; i++ {
-	// 	expectedMessages[strconv.Itoa(i)] = false
-	// 	go func(msg int) {
-	// 		defer wg.Done()
-	// 		stringMsg := strconv.Itoa(msg)
-
-	// 		err := bc.AddBlock([]byte(stringMsg))
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
-	// 	}(i)
-	// }
-
-	// wg.Wait()
 	log.Println("Blocks added.")
 
 	// Verify 20 blocks added and messages are 0-19
 	counter := readBlockchain(t, bc, expectedMessages)
-
-	// bci := bc.Iterator()
-	// block, err := bci.Next()
-	// if err != nil {
-	// 	t.Errorf("Could not retrieve next block: %v", err)
-	// }
-
-	// counter := 0
-	// for block != nil {
-	// 	msg := string(block.GetData())
-
-	// 	if val, ok := expectedMessages[msg]; ok && val <= 0 {
-	// 		counter++
-	// 		expectedMessages[msg]++
-	// 	} else {
-	// 		t.Errorf("Unexpected val encountered: %v", msg)
-	// 	}
-
-	// 	block, err = bci.Next()
-	// 	if err != nil {
-	// 		t.Errorf("Could not retrieve next block: %v", err)
-	// 	}
-	// }
 
 	// + 1 for the Genesis Block
 	if counter != routines+1 {
@@ -150,29 +110,14 @@ func TestBlockchainConcurrentRead(t *testing.T) {
 
 	log.Println("Blockchain created.")
 
-	// Create 30 go routines that each read the blockchain
-	routines := 30
+	// Create 100 go routines that each add 1 block
+	addRoutines := 100
 	expectedValues := map[string]int{genesisMessage: 1}
-	addNumberBlocksConccurently(t, bc, routines, expectedValues)
+	addNumberBlocksConccurently(t, bc, addRoutines, expectedValues)
 
-	readBlockchainConcurrently(t, bc, routines, expectedValues, routines+1)
-	// var wg sync.WaitGroup
-	// wg.Add(routines)
-
-	// expectedMessages := map[string]bool{genesisMessage: false}
-	// for i := 0; i < routines; i++ {
-	// 	expectedMessages[strconv.Itoa(i)] = false
-	// 	go func(msg int) {
-	// 		defer wg.Done()
-	// 		stringMsg := strconv.Itoa(msg)
-
-	// 		err := bc.AddBlock([]byte(stringMsg))
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
-	// 	}(i)
-	// }
-
+	// Create 30 go routines that each read the blockchain
+	readRoutines := 30
+	readBlockchainConcurrently(t, bc, readRoutines, expectedValues, addRoutines+1)
 }
 
 func addNumberBlocksConccurently(t *testing.T, bc *Blockchain, routines int, expectedValues map[string]int) {
