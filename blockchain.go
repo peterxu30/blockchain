@@ -119,6 +119,7 @@ func (bc *Blockchain) AddBlock(data []byte) error {
 
 		// Blocks should never be updated after initial creation.
 		if b.Get(newBlock.GetHash()) != nil {
+			fmt.Println("Collision")
 			return nil
 		}
 
@@ -127,9 +128,15 @@ func (bc *Blockchain) AddBlock(data []byte) error {
 			return err
 		}
 
+		// Last operation that can fail. If fails, need to remove the added block but functionality of the blockchain remains unaffected.
 		err = b.Put([]byte(headBlock), newBlock.GetHash())
-		bc.head = newBlock.GetHash()
+		if err != nil {
+			return err
+		}
 
+		// Only set head when function cannot fail anymore. Since BoltDB processes batches sequentially,
+		// head will be correct for successful additions and not be updated for failed ones.
+		bc.head = newBlock.GetHash()
 		return nil
 	})
 
