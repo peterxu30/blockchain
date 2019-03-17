@@ -186,6 +186,10 @@ func (bci *BlockchainIterator) Next() (*Block, error) {
 		return nil, err
 	}
 
+	if encodedBlock == nil {
+		return nil, fmt.Errorf("No block found for the hash %v", bci.currentHash)
+	}
+
 	block, err := DeserializeBlock(encodedBlock)
 	if err != nil {
 		return nil, err
