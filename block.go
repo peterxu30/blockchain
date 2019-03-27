@@ -65,7 +65,7 @@ func (block *Block) GetData() []byte {
 }
 
 func (block *Block) IsLastBlock() bool {
-	return len(block.GetPreviousHash()) == 0
+	return block.Header.IsLastBlock()
 }
 
 func (block *Block) Serialize() ([]byte, error) {
@@ -94,22 +94,26 @@ func DeserializeBlock(d []byte) (*Block, error) {
 	return &block, nil
 }
 
-func (Header *BlockHeader) GetTimestamp() int64 {
-	return Header.Timestamp
+func (header *BlockHeader) GetTimestamp() int64 {
+	return header.Timestamp
 }
 
-func (Header *BlockHeader) GetHash() []byte {
-	return Header.Hash
+func (header *BlockHeader) GetHash() []byte {
+	return header.Hash
 }
 
-func (Header *BlockHeader) GetPreviousHash() []byte {
-	return Header.PrevHash
+func (header *BlockHeader) GetPreviousHash() []byte {
+	return header.PrevHash
 }
 
-func (Header *BlockHeader) GetNonce() int {
-	return Header.Nonce
+func (header *BlockHeader) GetNonce() int {
+	return header.Nonce
 }
 
-func (Header *BlockHeader) GetDifficulty() int {
-	return Header.Difficulty
+func (header *BlockHeader) GetDifficulty() int {
+	return header.Difficulty
+}
+
+func (header *BlockHeader) IsLastBlock() bool {
+	return len(header.PrevHash) == 0
 }
