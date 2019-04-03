@@ -106,7 +106,8 @@ func NewGenesisBlock(data []byte) *Block {
 		data)
 }
 
-func (bc *Blockchain) AddBlock(data []byte) error {
+func (bc *Blockchain) AddBlock(data []byte) (*Block, error) {
+	var finishedNewBlock *Block
 	err := bc.db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 
@@ -137,10 +138,16 @@ func (bc *Blockchain) AddBlock(data []byte) error {
 		// Only set head when function cannot fail anymore. Since BoltDB processes batches sequentially,
 		// head will be correct for successful additions and not be updated for failed ones.
 		bc.head = newBlock.GetHash()
+
+		finishedNewBlock = newBlock
 		return nil
 	})
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	return finishedNewBlock, nil
 }
 
 func (bc *Blockchain) GetDifficulty() int {

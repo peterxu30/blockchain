@@ -28,12 +28,12 @@ func TestBlockchainHappyPath(t *testing.T) {
 	msg1 := "John has 2 more PrestigeCoin than Jane"
 	msg2 := "Jane has 10 more PrestigeCoin than David"
 
-	err = bc.AddBlock([]byte(msg1))
+	_, err = bc.AddBlock([]byte(msg1))
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = bc.AddBlock([]byte(msg2))
+	_, err = bc.AddBlock([]byte(msg2))
 	if err != nil {
 		t.Error(err)
 	}
@@ -130,7 +130,7 @@ func addNumberBlocksConccurently(t *testing.T, bc *Blockchain, routines int, exp
 			defer wg.Done()
 			stringMsg := strconv.Itoa(msg)
 
-			err := bc.AddBlock([]byte(stringMsg))
+			_, err := bc.AddBlock([]byte(stringMsg))
 			if err != nil {
 				t.Error(err)
 			}
