@@ -59,22 +59,23 @@ func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockcha
 
 			genesisBlock := NewGenesisBlock(genesisData)
 			encodedGenesisBlock, err := genesisBlock.Serialize()
-
 			if err != nil {
 				return err
 			}
 
-			err = b.Put(genesisBlock.GetHash(), encodedGenesisBlock)
+			genesisBlockHash := genesisBlock.Header.Hash
+
+			err = b.Put(genesisBlockHash, encodedGenesisBlock)
 			if err != nil {
 				return err
 			}
 
-			err = b.Put(headBlockKey, genesisBlock.GetHash())
+			err = b.Put(headBlockKey, genesisBlockHash)
 			if err != nil {
 				return err
 			}
 
-			encodedHead = genesisBlock.GetHash()
+			encodedHead = genesisBlockHash
 		} else {
 			encodedHead = b.Get(headBlockKey)
 		}
@@ -108,6 +109,7 @@ func NewGenesisBlock(data []byte) *Block {
 
 func (bc *Blockchain) AddBlock(data []byte) (*Block, error) {
 	var finishedNewBlock *Block
+	var newBlockHash []byte
 	err := bc.db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 
@@ -118,39 +120,52 @@ func (bc *Blockchain) AddBlock(data []byte) (*Block, error) {
 			return err
 		}
 
+		newBlockHash = newBlock.Header.Hash
+
 		// Blocks should never be updated after initial creation.
-		if b.Get(newBlock.GetHash()) != nil {
-			fmt.Println("Collision")
-			return nil
+		if b.Get(newBlockHash) != nil {
+			return &collisionError{newBlockHash}
 		}
 
-		err = b.Put(newBlock.GetHash(), encodedNewBlock)
+		err = b.Put(newBlockHash, encodedNewBlock)
 		if err != nil {
 			return err
 		}
 
 		// Last operation that can fail. If fails, need to remove the added block but functionality of the blockchain remains unaffected.
-		err = b.Put([]byte(headBlock), newBlock.GetHash())
+		err = b.Put([]byte(headBlock), newBlockHash)
 		if err != nil {
 			return err
 		}
 
 		// Only set head when function cannot fail anymore. Since BoltDB processes batches sequentially,
 		// head will be correct for successful additions and not be updated for failed ones.
-		bc.head = newBlock.GetHash()
+		bc.head = newBlockHash
 
 		finishedNewBlock = newBlock
 		return nil
 	})
 
 	if err != nil {
+		bc.deleteBadBlock(newBlockHash)
 		return nil, err
 	}
 
 	return finishedNewBlock, nil
 }
 
-func (bc *Blockchain) GetDifficulty() int {
+func (bc *Blockchain) deleteBadBlock(hash []byte) {
+	go func() {
+		bc.db.Batch(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(blocksBucket))
+
+			// Not a read-only transaction so should always return nil
+			return b.Delete(hash)
+		})
+	}()
+}
+
+func (bc *Blockchain) Difficulty() int {
 	return bc.difficulty
 }
 
@@ -202,7 +217,7 @@ func (bci *BlockchainIterator) Next() (*Block, error) {
 		return nil, err
 	}
 
-	bci.currentHash = block.GetPreviousHash()
+	bci.currentHash = block.Header.PreviousHash
 
 	return block, nil
 }

@@ -12,18 +12,18 @@ type Block struct {
 }
 
 type BlockHeader struct {
-	Timestamp  int64
-	Hash       []byte
-	PrevHash   []byte
-	Nonce      int
-	Difficulty int
+	Timestamp    int64
+	Hash         []byte
+	PreviousHash []byte
+	Nonce        int
+	Difficulty   int
 }
 
-func NewBlock(difficulty int, prevHash []byte, data []byte) *Block {
+func NewBlock(difficulty int, previousHash []byte, data []byte) *Block {
 	header := &BlockHeader{
-		Timestamp:  time.Now().Unix(),
-		PrevHash:   prevHash,
-		Difficulty: difficulty,
+		Timestamp:    time.Now().Unix(),
+		PreviousHash: previousHash,
+		Difficulty:   difficulty,
 	}
 
 	block := &Block{
@@ -40,33 +40,29 @@ func NewBlock(difficulty int, prevHash []byte, data []byte) *Block {
 	return block
 }
 
-func (block *Block) GetTimestamp() int64 {
-	return block.Header.GetTimestamp()
-}
+// func (block *Block) Timestamp() int64 {
+// 	return block.Header.Timestamp
+// }
 
-func (block *Block) GetHash() []byte {
-	return block.Header.GetHash()
-}
+// func (block *Block) Hash() []byte {
+// 	return block.Header.Hash
+// }
 
-func (block *Block) GetPreviousHash() []byte {
-	return block.Header.GetPreviousHash()
-}
+// func (block *Block) PreviousHash() []byte {
+// 	return block.Header.PreviousHash
+// }
 
-func (block *Block) GetNonce() int {
-	return block.Header.GetNonce()
-}
+// func (block *Block) Nonce() int {
+// 	return block.Header.Nonce
+// }
 
-func (block *Block) GetDifficulty() int {
-	return block.Header.GetDifficulty()
-}
+// func (block *Block) Difficulty() int {
+// 	return block.Header.Difficulty
+// }
 
-func (block *Block) GetData() []byte {
-	return block.Data
-}
-
-func (block *Block) IsLastBlock() bool {
-	return block.Header.IsLastBlock()
-}
+// func (block *Block) IsLastBlock() bool {
+// 	return block.Header.IsLastBlock()
+// }
 
 func (block *Block) Serialize() ([]byte, error) {
 	var result bytes.Buffer
@@ -94,26 +90,6 @@ func DeserializeBlock(d []byte) (*Block, error) {
 	return &block, nil
 }
 
-func (header *BlockHeader) GetTimestamp() int64 {
-	return header.Timestamp
-}
-
-func (header *BlockHeader) GetHash() []byte {
-	return header.Hash
-}
-
-func (header *BlockHeader) GetPreviousHash() []byte {
-	return header.PrevHash
-}
-
-func (header *BlockHeader) GetNonce() int {
-	return header.Nonce
-}
-
-func (header *BlockHeader) GetDifficulty() int {
-	return header.Difficulty
-}
-
 func (header *BlockHeader) IsLastBlock() bool {
-	return len(header.PrevHash) == 0
+	return len(header.PreviousHash) == 0
 }

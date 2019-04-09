@@ -17,7 +17,7 @@ func TestBlockchainHappyPath(t *testing.T) {
 
 	bc, err := NewBlockChain(testDbDir, difficulty, nil)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	// Normally call bc.Close() instead of DeleteBlockchain in order to persist the backing boltDb store. We delete the store here for testing.
@@ -43,20 +43,20 @@ func TestBlockchainHappyPath(t *testing.T) {
 	bci := bc.Iterator()
 
 	currBlock, _ := bci.Next()
-	currMsg := string(currBlock.GetData())
+	currMsg := string(currBlock.Data)
 	if currMsg != msg2 {
 		t.Errorf("Block held incorrect data. Expected: %s but got %s", msg2, currMsg)
 	}
 
 	currBlock, _ = bci.Next()
-	currMsg = string(currBlock.GetData())
-	if string(currBlock.GetData()) != msg1 {
+	currMsg = string(currBlock.Data)
+	if string(currBlock.Data) != msg1 {
 		t.Errorf("Block held incorrect data. Expected: %s but got %s", msg1, currMsg)
 	}
 
 	currBlock, _ = bci.Next()
-	currMsg = string(currBlock.GetData())
-	if string(currBlock.GetData()) != "Genesis Block" {
+	currMsg = string(currBlock.Data)
+	if string(currBlock.Data) != "Genesis Block" {
 		t.Errorf("Block held incorrect data. Expected: %s but got %s", "Genesis Block", currMsg)
 	}
 
@@ -167,7 +167,7 @@ func readBlockchain(t *testing.T, bc *Blockchain, expectedValues map[string]int)
 
 	totalBlockCount := 0
 	for block != nil {
-		msg := string(block.GetData())
+		msg := string(block.Data)
 
 		if val, ok := expectedValues[msg]; ok && val > 0 {
 			totalBlockCount++
