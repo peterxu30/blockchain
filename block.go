@@ -1,3 +1,4 @@
+// Package blockchain provides a simple blockchain implementation.
 package blockchain
 
 import (
@@ -11,6 +12,7 @@ type Block struct {
 	Data   []byte
 }
 
+// BlockHeader stores metadata relevant to a Block.
 type BlockHeader struct {
 	Timestamp    int64
 	Hash         []byte
@@ -39,30 +41,6 @@ func NewBlock(difficulty int, previousHash []byte, data []byte) *Block {
 
 	return block
 }
-
-// func (block *Block) Timestamp() int64 {
-// 	return block.Header.Timestamp
-// }
-
-// func (block *Block) Hash() []byte {
-// 	return block.Header.Hash
-// }
-
-// func (block *Block) PreviousHash() []byte {
-// 	return block.Header.PreviousHash
-// }
-
-// func (block *Block) Nonce() int {
-// 	return block.Header.Nonce
-// }
-
-// func (block *Block) Difficulty() int {
-// 	return block.Header.Difficulty
-// }
-
-// func (block *Block) IsLastBlock() bool {
-// 	return block.Header.IsLastBlock()
-// }
 
 func (block *Block) Serialize() ([]byte, error) {
 	var result bytes.Buffer

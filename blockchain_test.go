@@ -1,3 +1,4 @@
+// Package blockchain provides a simple blockchain implementation.
 package blockchain
 
 import (

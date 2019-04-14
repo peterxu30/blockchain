@@ -1,3 +1,4 @@
+// Package blockchain provides a simple blockchain implementation.
 package blockchain
 
 import (
@@ -14,22 +15,28 @@ const (
 	headBlock    = "head"
 )
 
+// Blockchain is the in-memory representation of the Blockchain.
+// It does not actually store the blocks in-memory but rather the metadata required to read blocks from db.
 type Blockchain struct {
-	metadata   *BlockchainMetadata
+	metadata   *blockchainMetadata
 	head       []byte
 	difficulty int
 	db         *bolt.DB
 }
 
-type BlockchainMetadata struct {
+// BlockchainMetadata stores metadata relevant to the Blockchain.
+type blockchainMetadata struct {
 	DbPath string
 }
 
+// BlockchainIterator is the iterator that traverses the Blockchain.
 type BlockchainIterator struct {
 	currentHash []byte
 	db          *bolt.DB
 }
 
+// NewBlockChain initializes a new blockchain with the input proof of work difficulty and data for the genesis block.
+// The blockchain will be stored in the input dbPath directory.
 func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockchain, error) {
 	fullDbPath := fmt.Sprintf("%s/%s", dbPath, dbFile)
 	if _, err := os.Stat(fullDbPath); os.IsNotExist(err) {
@@ -57,7 +64,7 @@ func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockcha
 				return err
 			}
 
-			genesisBlock := NewGenesisBlock(genesisData)
+			genesisBlock := newGenesisBlock(genesisData)
 			encodedGenesisBlock, err := genesisBlock.Serialize()
 			if err != nil {
 				return err
@@ -83,7 +90,7 @@ func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockcha
 		return nil
 	})
 
-	metadata := &BlockchainMetadata{
+	metadata := &blockchainMetadata{
 		DbPath: dbPath,
 	}
 
@@ -97,7 +104,7 @@ func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockcha
 	return blockchain, nil
 }
 
-func NewGenesisBlock(data []byte) *Block {
+func newGenesisBlock(data []byte) *Block {
 	if data == nil {
 		data = []byte("Genesis Block")
 	}
@@ -107,6 +114,7 @@ func NewGenesisBlock(data []byte) *Block {
 		data)
 }
 
+// AddBlock adds a block containing the input data to the front of the Blockchain.
 func (bc *Blockchain) AddBlock(data []byte) (*Block, error) {
 	var finishedNewBlock *Block
 	var newBlockHash []byte
@@ -165,20 +173,24 @@ func (bc *Blockchain) deleteBadBlock(hash []byte) {
 	}()
 }
 
+// Difficulty returns the difficulty of the Blockchain.
 func (bc *Blockchain) Difficulty() int {
 	return bc.difficulty
 }
 
+// Close closes the backing BoltDb. Should be called before closing whatever application is using the Blockchain.
 func (bc *Blockchain) Close() error {
 	err := bc.db.Close()
 	return err
 }
 
+// Iterator returns an iterator that traverses the Blockchain from most recent block to oldest.
 func (bc *Blockchain) Iterator() *BlockchainIterator {
 	bci := &BlockchainIterator{bc.head, bc.db}
 	return bci
 }
 
+// DeleteBlockchain deletes the input Blockchain and all stored data. This is permanent and irreversible.
 func DeleteBlockchain(bc *Blockchain) {
 	bc.Close()
 
@@ -190,6 +202,7 @@ func DeleteBlockchain(bc *Blockchain) {
 	}
 }
 
+// Next returns the next block in the Blockchain.
 func (bci *BlockchainIterator) Next() (*Block, error) {
 	if bci.currentHash == nil {
 		return nil, nil
