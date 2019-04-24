@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	dbFile       = "main.db"
+	dbFile       = ".main.db"
 	blocksBucket = "blocksBucket"
 	headBlock    = "head"
 )
@@ -65,7 +65,7 @@ func NewBlockChain(dbPath string, difficulty int, genesisData []byte) (*Blockcha
 			}
 
 			genesisBlock := newGenesisBlock(genesisData)
-			encodedGenesisBlock, err := genesisBlock.Serialize()
+			encodedGenesisBlock, err := serializeBlock(genesisBlock)
 			if err != nil {
 				return err
 			}
@@ -108,7 +108,7 @@ func newGenesisBlock(data []byte) *Block {
 	if data == nil {
 		data = []byte("Genesis Block")
 	}
-	return NewBlock(
+	return newBlock(
 		0,
 		nil,
 		data)
@@ -121,9 +121,9 @@ func (bc *Blockchain) AddBlock(data []byte) (*Block, error) {
 	err := bc.db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 
-		newBlock := NewBlock(bc.difficulty, bc.head, data)
+		newBlock := newBlock(bc.difficulty, bc.head, data)
 
-		encodedNewBlock, err := newBlock.Serialize()
+		encodedNewBlock, err := serializeBlock(newBlock)
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func (bci *BlockchainIterator) Next() (*Block, error) {
 		return nil, fmt.Errorf("No block found for the hash %v", bci.currentHash)
 	}
 
-	block, err := DeserializeBlock(encodedBlock)
+	block, err := deserializeBlock(encodedBlock)
 	if err != nil {
 		return nil, err
 	}

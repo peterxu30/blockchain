@@ -20,7 +20,7 @@ type BlockHeader struct {
 	Difficulty   int
 }
 
-func NewBlock(difficulty int, previousHash []byte, data []byte) *Block {
+func newBlock(difficulty int, previousHash []byte, data []byte) *Block {
 	header := &BlockHeader{
 		Timestamp:    time.Now().Unix(),
 		PreviousHash: previousHash,
@@ -41,7 +41,7 @@ func NewBlock(difficulty int, previousHash []byte, data []byte) *Block {
 	return block
 }
 
-func (block *Block) Serialize() ([]byte, error) {
+func serializeBlock(block *Block) ([]byte, error) {
 	var result bytes.Buffer
 	encoder := gob.NewEncoder(&result)
 
@@ -54,7 +54,7 @@ func (block *Block) Serialize() ([]byte, error) {
 	return result.Bytes(), nil
 }
 
-func DeserializeBlock(d []byte) (*Block, error) {
+func deserializeBlock(d []byte) (*Block, error) {
 	var block Block
 
 	decoder := gob.NewDecoder(bytes.NewReader(d))
