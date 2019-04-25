@@ -186,7 +186,12 @@ func (bc *Blockchain) Close() error {
 
 // Iterator returns an iterator that traverses the Blockchain from most recent block to oldest.
 func (bc *Blockchain) Iterator() *BlockchainIterator {
-	bci := &BlockchainIterator{bc.head, bc.db}
+	return bc.IteratorAtBlock(bc.head)
+}
+
+// IteratorAtBlock returns an iterator that traverses the Blockchain from the block with input hash to oldest.
+func (bc *Blockchain) IteratorAtBlock(hash []byte) *BlockchainIterator {
+	bci := &BlockchainIterator{hash, bc.db}
 	return bci
 }
 
