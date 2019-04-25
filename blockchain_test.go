@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -118,6 +120,72 @@ func TestBlockchainConcurrentRead(t *testing.T) {
 	// Create 30 go routines that each read the blockchain
 	readRoutines := 30
 	readBlockchainConcurrently(t, bc, readRoutines, expectedValues, addRoutines+1)
+}
+
+func TestBlockchainIteratorAtBlock(t *testing.T) {
+	log.Println("Test start.")
+
+	genesisMessage := "Genesis Block"
+	bc, err := NewBlockChain(testDbDir, difficulty, []byte(genesisMessage))
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Normally call bc.Close() instead of DeleteBlockchain in order to persist the backing boltDb store. We delete the store here for testing.
+	defer DeleteBlockchain(bc)
+
+	log.Println("Blockchain created.")
+
+	msg1 := "Message 1"
+	msg2 := "Message 2"
+	msg3 := "Message 3"
+
+	b1, err := bc.AddBlock([]byte(msg1))
+	if err != nil {
+		t.Error(err)
+	}
+
+	b2, err := bc.AddBlock([]byte(msg2))
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = bc.AddBlock([]byte(msg3))
+	if err != nil {
+		t.Error(err)
+	}
+
+	log.Println("Blocks added.")
+
+	bci := bc.IteratorAtBlock(b2.Header.Hash)
+
+	b2FromStore, err := bci.Next()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !cmp.Equal(b2FromStore, b2) {
+		t.Errorf("Expected block with hash %v and data %s but got block with hash %v and data %s.", b2.Header.Hash, b2.Data, b2FromStore.Header.Hash, b2FromStore.Data)
+	}
+
+	b1FromStore, err := bci.Next()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !cmp.Equal(b1FromStore, b1) {
+		t.Errorf("Expected block with hash %v and data %s but got block with hash %v and data %s.", b1.Header.Hash, b1.Data, b1FromStore.Header.Hash, b1FromStore.Data)
+	}
+
+	genesisFromStore, err := bci.Next()
+	if err != nil {
+		t.Error(err)
+	}
+
+	genesisFromStoreMessage := string(genesisFromStore.Data)
+	if genesisFromStoreMessage != genesisMessage {
+		t.Errorf("Expected genesis block but message was %s", genesisFromStoreMessage)
+	}
 }
 
 func addNumberBlocksConccurently(t *testing.T, bc *Blockchain, routines int, expectedValues map[string]int) {
