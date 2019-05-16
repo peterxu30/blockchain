@@ -210,7 +210,7 @@ func DeleteBlockchain(bc *Blockchain) {
 // Next returns the next block in the Blockchain.
 func (bci *BlockchainIterator) Next() (*Block, error) {
 	if bci.currentHash == nil {
-		return nil, nil
+		return nil, &StopIterationError{}
 	}
 
 	var encodedBlock []byte
